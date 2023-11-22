@@ -1027,7 +1027,6 @@ def get_pretrained_state_dict(
         state_dict = utils.download_file_from_hf(
             official_model_name, file_name, **kwargs
         )
-
         # Convert to dtype
         state_dict = {k: v.to(dtype) for k, v in state_dict.items()}
 

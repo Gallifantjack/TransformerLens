@@ -9,7 +9,7 @@ alteration of activations in individual components like attention heads and MLP 
 a deeper understanding of the internal workings of transformers like GPT-2.
 """
 import logging
-from typing import Dict, List, NamedTuple, Optional, Tuple, Union, overload
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union, overload
 
 import einops
 import numpy as np
@@ -37,6 +37,7 @@ from transformer_lens.components import (
 )
 from transformer_lens.FactoredMatrix import FactoredMatrix
 from transformer_lens.hook_points import HookedRootModule, HookPoint
+from transformer_lens.HookedTransformerConfig import HookedTransformerConfig as HTConfig
 
 # Note - activation cache is used with run_with_cache, past_key_value_caching is used for
 # generation.
@@ -1064,6 +1065,65 @@ class HookedTransformer(HookedRootModule):
         for i, block in enumerate(self.blocks):
             block.to(devices.get_device_for_block_index(i, self.cfg))
 
+    @classmethod
+    def from_local(
+        cls,
+        local_model_path: str,
+        local_cfg: HTConfig,
+        # weight conversion is an external function that can be passed in- defaults to none
+        weight_conversion_function: Optional[Callable] = None,
+        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+        move_to_device: Optional[bool] = True,
+        default_padding_side: Optional[Literal["left", "right"]] = "right",
+        dtype="float32",
+        **from_pretrained_kwargs,
+    ) -> "HookedTransformer":
+        
+        """Load in a local model.
+
+        Load in a model from a local path. 
+        
+        """
+        # load in model state dict
+        print(f"Loading model from local path: {local_model_path}")
+        state_dict = torch.load(local_model_path, map_location="cpu")
+        print(f"Loaded model state dict: {state_dict}")
+        
+        # Convert to dtype
+        # state_dict = {k: v.to(dtype) for k, v in state_dict.items()}
+        # print(f"Converted model state dict to dtype: {state_dict}")
+        
+        # weight conversion functions here if needed
+        if weight_conversion_function is not None:
+            state_dict= weight_conversion_function(state_dict, local_cfg)
+            print(f"Converted model state dict using weight conversion function: {state_dict}")
+        
+        # Create the HookedTransformer object
+        model = cls(
+            local_cfg,
+            tokenizer,
+            move_to_device=False,
+            default_padding_side=default_padding_side,
+        )
+        print(f"Created HookedTransformer object: {model}")
+        
+        # TODO: fill missing keys functionality to be added here 
+        
+         # load in state dict
+        model.load_state_dict(state_dict)
+        
+        print(f"Loaded state dict into model: {model}")
+        
+        if move_to_device:
+            model.move_model_modules_to_device()
+        
+        return model
+
+        
+        
+
+        
+        
     @classmethod
     def from_pretrained(
         cls,
