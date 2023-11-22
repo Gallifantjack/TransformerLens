@@ -55,7 +55,7 @@ class HookedTransformerTrainConfig:
     wandb_project_name: Optional[str] = None
     print_every: Optional[int] = 50
     max_steps: Optional[int] = None
-
+    pickle_dump: bool = False
 
 def train(
     model: HookedTransformer,
@@ -112,6 +112,9 @@ def train(
             optimizer,
             lr_lambda=lambda step: min(1.0, step / config.warmup_steps),
         )
+    if config.pickle_dump:
+        assert config.pickle_path is not None
+        assert config.save_every is not None
 
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
 
@@ -146,8 +149,12 @@ def train(
                 and step % config.save_every == 0
                 and config.save_dir is not None
             ):
+                # Save the model state dict 
                 torch.save(model.state_dict(), f"{config.save_dir}/model_{step}.pt")
-
+                # Save the whole model if we're using pickle
+                if config.pickle_dump:
+                    with open(f"{config.save_dir}/model_{step}.pkl", "wb") as f:
+                        torch.save(model, f)
             if config.max_steps is not None and step >= config.max_steps:
                 break
 
