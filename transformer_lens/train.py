@@ -3,6 +3,7 @@
 Utilities for training :class:`transformer_lens.HookedTransformer` models on autoregressive language
 modeling tasks.
 """
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -143,6 +144,10 @@ def train(
 
             if config.print_every is not None and step % config.print_every == 0:
                 print(f"Epoch {epoch} Samples {samples} Step {step} Loss {loss.item()}")
+            
+            # make sure save_dir exists
+            if config.save_dir is not None:
+                os.makedirs(config.save_dir, exist_ok=True)
 
             if (
                 config.save_every is not None

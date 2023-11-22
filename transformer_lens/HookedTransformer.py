@@ -1070,13 +1070,12 @@ class HookedTransformer(HookedRootModule):
         cls,
         local_model_path: str,
         local_cfg: HTConfig,
-        # weight conversion is an external function that can be passed in- defaults to none
         weight_conversion_function: Optional[Callable] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
         move_to_device: Optional[bool] = True,
         default_padding_side: Optional[Literal["left", "right"]] = "right",
         dtype="float32",
-        **from_pretrained_kwargs,
+        **from_local_kwargs,
     ) -> "HookedTransformer":
         
         """Load in a local model.
@@ -1088,11 +1087,7 @@ class HookedTransformer(HookedRootModule):
         print(f"Loading model from local path: {local_model_path}")
         state_dict = torch.load(local_model_path, map_location="cpu")
         print(f"Loaded model state dict: {state_dict}")
-        
-        # Convert to dtype
-        # state_dict = {k: v.to(dtype) for k, v in state_dict.items()}
-        # print(f"Converted model state dict to dtype: {state_dict}")
-        
+                
         # weight conversion functions here if needed
         if weight_conversion_function is not None:
             state_dict= weight_conversion_function(state_dict, local_cfg)
