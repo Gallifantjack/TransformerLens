@@ -1074,25 +1074,58 @@ class HookedTransformer(HookedRootModule):
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
         move_to_device: Optional[bool] = True,
         default_padding_side: Optional[Literal["left", "right"]] = "right",
-        dtype="float32",
         **from_local_kwargs,
     ) -> "HookedTransformer":
-        
-        """Load in a local model.
+        """
+        Load Model From Local Path.
 
-        Load in a model from a local path. 
-        
+        Loads a locally trained model using the HookedTransformer framework. This method is specifically designed for models trained with custom parameters, differing from standard available models. It supports the continued pretraining of such models on new datasets.
+
+        This method is not intended for general-purpose model loading but rather for models trained within the specific framework of HookedTransformer.
+
+        Example:
+
+        >>> from transformer_lens import HookedTransformer
+        >>> model = HookedTransformer.from_local(local_model_path=local_model_path, local_cfg=local_cfg)
+        Loaded pretrained model from local_model_path.pt into HookedTransformer
+
+        Args:
+            local_model_path (str):
+                The file path to the locally stored model.
+            local_cfg (HTConfig):
+                Configuration object for the HookedTransformer.
+            weight_conversion_function (Optional[Callable]):
+                A function to convert the weights of the model, if necessary. Defaults to None.
+            tokenizer: The tokenizer to use for the model. If not
+                provided, it is inferred from cfg.tokenizer_name or initialized to None. If None,
+                then the model cannot be passed strings, and d_vocab must be explicitly set.
+            move_to_device: Whether to move the model to the device specified in
+                cfg. device. Must be true if `n_devices` in the config is greater than 1, since the
+                model's layers will be split across multiple devices.
+            default_padding_side: Which side to pad on when tokenizing. Defaults to
+                "right".
+        Returns:
+            HookedTransformer:
+                An instance of the HookedTransformer class with the loaded model.
+
+        Raises:
+            IOError:
+                If the model file at the specified path does not exist or cannot be read.
+            RuntimeError:
+                If there are issues with loading the model state dict or moving the model to the device.
+
         """
         # load in model state dict
         print(f"Loading model from local path: {local_model_path}")
         state_dict = torch.load(local_model_path, map_location="cpu")
-        print(f"Loaded model state dict: {state_dict}")
-                
+
         # weight conversion functions here if needed
         if weight_conversion_function is not None:
-            state_dict= weight_conversion_function(state_dict, local_cfg)
-            print(f"Converted model state dict using weight conversion function: {state_dict}")
-        
+            state_dict = weight_conversion_function(state_dict, local_cfg)
+            print(
+                f"Converted model state dict using weight conversion function: {state_dict}"
+            )
+
         # Create the HookedTransformer object
         model = cls(
             local_cfg,
@@ -1100,25 +1133,19 @@ class HookedTransformer(HookedRootModule):
             move_to_device=False,
             default_padding_side=default_padding_side,
         )
-        print(f"Created HookedTransformer object: {model}")
-        
-        # TODO: fill missing keys functionality to be added here 
-        
-         # load in state dict
+
+        # TODO: consider adding the fill missing keys functionality directly here
+
+        # load in state dict
         model.load_state_dict(state_dict)
-        
-        print(f"Loaded state dict into model: {model}")
-        
+
         if move_to_device:
             model.move_model_modules_to_device()
-        
+
+        print(f"Loaded pretrained model from {local_model_path} into HookedTransformer")
+
         return model
 
-        
-        
-
-        
-        
     @classmethod
     def from_pretrained(
         cls,

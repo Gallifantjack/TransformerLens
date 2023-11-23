@@ -38,6 +38,8 @@ class HookedTransformerTrainConfig:
         wandb_project (str, *optional*): Name of the Weights and Biases project to use
         print_every (int, *optional*): Print the loss every n steps
         max_steps (int, *optional*): Terminate the epoch after this many steps. Used for debugging.
+        pickle_dump (bool): Whether to dump the whole model to a pickle file every save_every steps
+        to save_dir
     """
 
     num_epochs: int
@@ -57,6 +59,7 @@ class HookedTransformerTrainConfig:
     print_every: Optional[int] = 50
     max_steps: Optional[int] = None
     pickle_dump: bool = False
+
 
 def train(
     model: HookedTransformer,
@@ -144,7 +147,7 @@ def train(
 
             if config.print_every is not None and step % config.print_every == 0:
                 print(f"Epoch {epoch} Samples {samples} Step {step} Loss {loss.item()}")
-            
+
             # make sure save_dir exists
             if config.save_dir is not None:
                 os.makedirs(config.save_dir, exist_ok=True)
@@ -154,7 +157,7 @@ def train(
                 and step % config.save_every == 0
                 and config.save_dir is not None
             ):
-                # Save the model state dict 
+                # Save the model state dict
                 torch.save(model.state_dict(), f"{config.save_dir}/model_{step}.pt")
                 # Save the whole model if we're using pickle
                 if config.pickle_dump:
