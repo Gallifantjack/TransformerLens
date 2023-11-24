@@ -117,7 +117,7 @@ def train(
             lr_lambda=lambda step: min(1.0, step / config.warmup_steps),
         )
     if config.pickle_dump:
-        assert config.pickle_path is not None
+        assert config.save_dir is not None
         assert config.save_every is not None
 
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
